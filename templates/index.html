@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Watermark</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    /* Drop zone */
+    .dropzone {
+      border: 2px dashed #333;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: #12121a;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: #6c63ff;
+      background: #16162a;
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .drop-text {
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    .drop-text strong { color: #6c63ff; }
+
+    .file-info {
+      margin-top: 20px;
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .file-info.visible { display: flex; }
+
+    .file-ext {
+      background: #6c63ff;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .file-name {
+      font-size: 0.85rem;
+      color: #ccc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* Timeline preview */
+    .timeline {
+      margin: 24px 0;
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .timeline-title {
+      font-size: 0.75rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .tl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+
+    .tl-time {
+      color: #6c63ff;
+      font-weight: 600;
+      width: 36px;
+    }
+
+    .tl-label { color: #bbb; }
+    .tl-random { color: #555; font-style: italic; font-size: 0.78rem; margin-top: 2px; }
+
+    /* Watermark toggle */
+    .wm-toggle {
+      display: none;
+      margin-top: 14px;
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 13px 16px;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .wm-toggle.visible { display: flex; }
+    .wm-toggle:hover { border-color: #444; }
+    .wm-toggle.active { border-color: #6c63ff; background: #16162a; }
+
+    .wm-toggle input[type="checkbox"] { display: none; }
+
+    .wm-check {
+      width: 18px; height: 18px;
+      border: 2px solid #444;
+      border-radius: 5px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      color: transparent;
+      transition: all 0.2s;
+    }
+
+    .wm-toggle.active .wm-check {
+      background: #6c63ff;
+      border-color: #6c63ff;
+      color: #fff;
+    }
+
+    .wm-info { flex: 1; }
+    .wm-title { font-size: 0.85rem; color: #ccc; font-weight: 600; }
+    .wm-desc  { font-size: 0.75rem; color: #555; margin-top: 2px; }
+
+    /* Button */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+
+    .btn:hover:not(:disabled) { background: #574fd6; }
+    .btn:disabled { background: #333; color: #666; cursor: default; }
+
+    /* Progress */
+    .progress-wrap {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .progress-wrap.visible { display: block; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #2a2a3a;
+      border-top-color: #6c63ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-text { color: #888; font-size: 0.9rem; }
+
+    /* Result */
+    .result {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .result.visible { display: block; }
+
+    .download-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+      background: #1a3a1a;
+      border: 1px solid #2a6a2a;
+      color: #5dde5d;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .download-btn:hover { background: #1e481e; }
+
+    .reset-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid #2a2a3a;
+      color: #666;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .reset-btn:hover { border-color: #444; color: #aaa; }
+
+    /* Error */
+    .error-box {
+      display: none;
+      margin-top: 16px;
+      background: #2a1010;
+      border: 1px solid #6a2020;
+      color: #e06060;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+    }
+
+    .error-box.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Preview Watermark</h1>
+    <p class="subtitle">
+      Adiciona voz de prévia ao seu arquivo MP3 ou MP4.<br>
+      A música original não é alterada.
+    </p>
+
+    <!-- Drop zone -->
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".mp3,.mp4,.mov,.m4a">
+      <span class="drop-icon">🎵</span>
+      <p class="drop-text">
+        Arraste um arquivo aqui ou <strong>clique para selecionar</strong>
+      </p>
+      <p class="drop-text" style="margin-top:6px; font-size:0.78rem; color:#555">MP3, MP4 suportados</p>
+    </div>
+
+    <!-- File info -->
+    <div class="file-info" id="fileInfo">
+      <span class="file-ext" id="fileExt">MP3</span>
+      <span class="file-name" id="fileName">arquivo.mp3</span>
+    </div>
+
+    <!-- Watermark toggle (só aparece para MP4) -->
+    <div class="wm-toggle" id="wmToggle">
+      <div class="wm-check" id="wmCheckBox">✓</div>
+      <div class="wm-info">
+        <div class="wm-title">Remover "MADE WITH SUNO"</div>
+        <div class="wm-desc">Borra a faixa inferior do vídeo onde aparece a marca</div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="timeline-title">Marcação de voz · corta em 1:15</div>
+      <div class="tl-row">
+        <span class="tl-time">0:25</span>
+        <span class="tl-label">"Essa é uma prévia"</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">0:50</span>
+        <span class="tl-label">"pagamento pendente"</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">1:10</span>
+        <span class="tl-label">"…prévia, faça o pagamento"</span>
+      </div>
+      <div class="tl-row" style="margin-top:8px; border-top:1px solid #222; padding-top:8px;">
+        <span class="tl-time" style="color:#e06060">✂</span>
+        <span class="tl-label" style="color:#e06060">Corta em 1:15</span>
+      </div>
+    </div>
+
+    <!-- Botão processar -->
+    <button class="btn" id="processBtn" disabled onclick="processFile()">
+      Selecione um arquivo
+    </button>
+
+    <!-- Erro -->
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- Progresso -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="spinner"></div>
+      <p class="progress-text" id="progressText">Gerando vozes e mixando áudio…</p>
+    </div>
+
+    <!-- Resultado -->
+    <div class="result" id="result">
+      <a class="download-btn" id="downloadLink" href="#">
+        ⬇ Baixar arquivo com prévia
+      </a>
+      <button class="reset-btn" onclick="reset()">Processar outro arquivo</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+    let removeWatermark = false;
+
+    const dropzone     = document.getElementById('dropzone');
+    const fileInput    = document.getElementById('fileInput');
+    const fileInfo     = document.getElementById('fileInfo');
+    const fileExt      = document.getElementById('fileExt');
+    const fileName     = document.getElementById('fileName');
+    const processBtn   = document.getElementById('processBtn');
+    const errorBox     = document.getElementById('errorBox');
+    const progressWrap = document.getElementById('progressWrap');
+    const result       = document.getElementById('result');
+    const downloadLink = document.getElementById('downloadLink');
+    const wmToggle     = document.getElementById('wmToggle');
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) setFile(fileInput.files[0]);
+    });
+
+    function setFile(f) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!['mp3','mp4','mov','m4a'].includes(ext)) {
+        showError('Formato não suportado. Use MP3 ou MP4.');
+        return;
+      }
+      selectedFile = f;
+      fileExt.textContent = ext.toUpperCase();
+      fileName.textContent = f.name;
+      fileInfo.classList.add('visible');
+      processBtn.disabled = false;
+      processBtn.textContent = 'Adicionar voz de prévia';
+      errorBox.classList.remove('visible');
+
+      // Mostra toggle de watermark só para vídeo
+      const isVideo = ['mp4', 'mov'].includes(ext);
+      if (isVideo) {
+        wmToggle.classList.add('visible');
+      } else {
+        wmToggle.classList.remove('visible');
+        removeWatermark = false;
+        wmToggle.classList.remove('active');
+      }
+    }
+
+    wmToggle.addEventListener('click', function() {
+      removeWatermark = !removeWatermark;
+      wmToggle.classList.toggle('active', removeWatermark);
+    });
+
+    async function processFile() {
+      if (!selectedFile) return;
+
+      const fd = new FormData();
+      fd.append('file', selectedFile);
+      fd.append('remove_watermark', removeWatermark ? 'true' : 'false');
+
+      processBtn.disabled = true;
+      progressWrap.classList.add('visible');
+      result.classList.remove('visible');
+      errorBox.classList.remove('visible');
+
+      const msgs = [
+        'Gerando vozes em português…',
+        'Mixando áudio com a música original…',
+        removeWatermark ? 'Removendo marca d\'água…' : 'Finalizando o arquivo…',
+        'Quase pronto…'
+      ];
+      let mi = 0;
+      const pt = document.getElementById('progressText');
+      const interval = setInterval(() => {
+        mi = (mi + 1) % msgs.length;
+        pt.textContent = msgs[mi];
+      }, 3000);
+
+      try {
+        const resp = await fetch('/process', { method: 'POST', body: fd });
+        const data = await resp.json();
+        clearInterval(interval);
+        progressWrap.classList.remove('visible');
+
+        if (!resp.ok || data.error) {
+          showError(data.error || 'Erro desconhecido');
+          processBtn.disabled = false;
+          return;
+        }
+
+        downloadLink.href = `/download/${data.uid}?name=${encodeURIComponent(data.filename)}`;
+        downloadLink.textContent = `⬇ Baixar ${data.filename}`;
+        result.classList.add('visible');
+
+      } catch (err) {
+        clearInterval(interval);
+        progressWrap.classList.remove('visible');
+        showError('Erro de conexão com o servidor.');
+        processBtn.disabled = false;
+      }
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.add('visible');
+    }
+
+    function reset() {
+      selectedFile = null;
+      removeWatermark = false;
+      fileInput.value = '';
+      fileInfo.classList.remove('visible');
+      wmToggle.classList.remove('visible', 'active');
+      result.classList.remove('visible');
+      errorBox.classList.remove('visible');
+      processBtn.disabled = true;
+      processBtn.textContent = 'Selecione um arquivo';
+    }
+  </script>
+</body>
+</html>

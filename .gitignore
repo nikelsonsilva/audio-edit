@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.claude/
+uploads/*
+outputs/*
+*.mp3
+*.mp4
+*.mov
+!requirements.txt
