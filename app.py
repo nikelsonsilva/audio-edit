@@ -26,7 +26,7 @@ PLACEMENTS = [
 
 
 def make_voice(text, path):
-    tts = gTTS(text=text, lang="pt-br", slow=False)
+    tts = gTTS(text=text, lang='pt', tld='com.br', slow=False)
     tts.save(path)
 
 
